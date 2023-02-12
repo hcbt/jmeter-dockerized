@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  influxdb:
+    image: "influxdb:2.4.0-alpine"
+    env_file:
+      - .env
+    volumes:
+      - influxdb-storage:/var/lib/influxdb2
+      # - ./config/influxdb:/etc/influxdb2
+    ports:
+      - "8086:8086"
+
+  grafana:
+    image: "grafana/grafana:9.2.0"
+    env_file:
+      - .env
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      # - ./config/grafana:/etc/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    depends_on:
+      - influxdb
+
+  jmeter:
+    build: https://github.com/unseel/docker-jmeter.git
+    env_file:
+      - .env
+    volumes:
+      - ./jmeter/plugins:/plugins
+      - ./jmeter/data/test_plans:/test_plans
+      - ./jmeter/data/logs:/logs
+    command: -JTHREADS=${THREADS} -JTARGET_HOST=${TARGET_HOST} -JTARGET_PORT=${TARGET_PORT} -JTARGET_PATH=${TARGET_PATH} -JTARGET_KEYWORD=${TARGET_KEYWORD} -n -t /test_plans/${TEST_PLAN} -l /logs/results.csv -j /logs/jmeter.log
+    depends_on:
+      - influxdb
+
+volumes:
+  influxdb-storage:
+  
+  grafana-storage:
